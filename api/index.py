@@ -11,27 +11,15 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 SESSION = requests.Session()
 
-def send_button(chat_id, text, button_url):
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "reply_markup": {
-            "inline_keyboard": [
-                [
-                    {
-                        "text": "▶️ Open on YouTube",
-                        "url": button_url
-                    }
-                ]
-            ]
-        }
-    }
-
+def send_text(chat_id, text):
     for _ in range(3):
         try:
             r = SESSION.post(
                 f"{API_URL}/sendMessage",
-                json=payload,
+                json={
+                    "chat_id": chat_id,
+                    "text": text
+                },
                 timeout=3
             )
             if r.status_code == 200:
@@ -56,29 +44,18 @@ class handler(BaseHTTPRequestHandler):
             text = msg.get("text", "")
 
             if text == "/start":
-                SESSION.post(
-                    f"{API_URL}/sendMessage",
-                    json={
-                        "chat_id": chat_id,
-                        "text": "Send search tag. Result will open via button."
-                    },
-                    timeout=3
+                send_text(
+                    chat_id,
+                    "Send search tag. Result will open automatically."
                 )
             else:
                 q = urllib.parse.quote(text[:200])
                 host = self.headers.get("host")
 
-                # hidden redirect link
-                redirect_url = (
-                    f"https://{host}/go?"
-                    f"q={q}"
-                )
+                # 🔒 secret redirect link (YouTube hidden)
+                redirect_url = f"https://{host}/go?q={q}"
 
-                send_button(
-                    chat_id,
-                    "🔍 Your search is ready",
-                    redirect_url
-                )
+                send_text(chat_id, redirect_url)
 
         except:
             pass
@@ -89,7 +66,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             parsed = urlparse(self.path)
 
-            # redirect handler
+            # redirect handler (SAME AS BEFORE)
             if parsed.path == "/go":
                 qs = parse_qs(parsed.query)
                 q = qs.get("q", [""])[0]
